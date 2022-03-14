@@ -111,6 +111,10 @@ func AccAddressFromHex(address string) (addr AccAddress, err error) {
 		return addr, errors.New("decoding Bech32 address failed: must provide an address")
 	}
 
+	if strings.HasPrefix(address, "0x") {
+		address = address[2:]
+	}
+
 	bz, err := hex.DecodeString(address)
 	if err != nil {
 		return nil, err

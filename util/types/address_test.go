@@ -5,6 +5,15 @@ import (
 	"testing"
 )
 
+func TestAccAddress_HexString1(t *testing.T) {
+	addr, err := AccAddressFromHex("0xEC5449e1719a4f3555Ef71A98706BDBbFbaCA2C5")
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(addr.Bech32String("fb"))
+}
+
 func TestAccAddress_HexString(t *testing.T) {
 	addr, err := AccAddressFromHex("EC5449e1719a4f3555Ef71A98706BDBbFbaCA2C5")
 	if err != nil {
