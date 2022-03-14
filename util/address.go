@@ -9,9 +9,9 @@ import (
 	"github.com/zhengjianfeng1103/FbSdk/libs/crypto"
 	"strings"
 
-	tmamino "github.com/zhengjianfeng1103/FbSdk/libs/crypto/encoding/amino"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	tmamino "github.com/zhengjianfeng1103/FbSdk/libs/crypto/encoding/amino"
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/zhengjianfeng1103/FbSdk/libs/bech32"
