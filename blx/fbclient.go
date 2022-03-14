@@ -723,6 +723,25 @@ func (j *Jk) SendContractAsync(ctx context.Context, senderPrivate string, receiv
 	return
 }
 
+func (j *Jk) IsContract(ctx context.Context, address string) (bool, error) {
+	client, err := j.Acquire()
+	if err != nil {
+		return false, err
+	}
+
+	at, err := client.CodeAt(ctx, common.HexToAddress(address), nil)
+	if err != nil {
+		return false, err
+	}
+
+	if string(at) == "" {
+		return false, nil
+	}
+
+	log.Log.Debug("code at: ", at)
+	return true, nil
+}
+
 func (j *Jk) StartScan(startNumber uint64, handle func(tx *types.Transaction, block *types.Block) error) error {
 	if startNumber < 1 {
 		return errors.New("start number can not < 1")

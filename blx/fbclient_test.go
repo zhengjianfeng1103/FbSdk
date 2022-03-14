@@ -189,3 +189,29 @@ func TestStartScan(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestJk_IsContract(t *testing.T) {
+	jk := NewJk(2)
+
+	to := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
+	contractAddr := "0x03007fcaa04cec04820ed54e1a49b2e0f69cc298"
+
+	isC, err := jk.IsContract(context.Background(), to)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if isC {
+		t.Error(to, "not a contract address")
+	}
+
+	isCC, err := jk.IsContract(context.Background(), contractAddr)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !isCC {
+		t.Error(contractAddr, "is a contract address")
+	}
+
+}
