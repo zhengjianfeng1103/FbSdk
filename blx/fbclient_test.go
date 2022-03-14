@@ -189,3 +189,14 @@ func TestStartScan(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestGenerateKey(t *testing.T) {
+	jk := NewJk(2)
+
+	key, privateKey, err := jk.GenerateKey()
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(key, privateKey)
+}
