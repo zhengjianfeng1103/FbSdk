@@ -923,15 +923,17 @@ func (j *Jk) readLatestNumber(highestNumber uint64) uint64 {
 		return highestNumber
 	}
 
-	if string(all) == "" {
+	a := strings.TrimSpace(string(all))
+	if a == "" {
 		return 0
 	}
 
-	parseUint, err := strconv.ParseUint(string(all), 10, 64)
-	if err != nil {
-		log.Log.Error("parse latestNumber.info: ", err)
+	f, success := new(big.Float).SetString(a)
+	if !success {
+		log.Log.Error("float set string latestNumber.info: ", err)
 		return highestNumber
 	}
 
-	return parseUint
+	u, _ := f.Uint64()
+	return u
 }
