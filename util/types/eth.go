@@ -18,7 +18,7 @@ func GenerateKey() (pubKey string, privateKey string, err error) {
 	publicKey := private.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
-		return "", "", errors.New("error casting public key to ECDSA")
+		return "", "", errors.New("error casting public key to ECDSA k")
 	}
 
 	publicKeyBytes := crypto.FromECDSAPub(publicKeyECDSA)
