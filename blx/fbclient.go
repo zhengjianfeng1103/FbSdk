@@ -729,6 +729,8 @@ func (j *Jk) IsContract(ctx context.Context, address string) (bool, error) {
 		return false, err
 	}
 
+	defer j.Release(client)
+
 	at, err := client.CodeAt(ctx, common.HexToAddress(address), nil)
 	if err != nil {
 		return false, err
@@ -738,7 +740,6 @@ func (j *Jk) IsContract(ctx context.Context, address string) (bool, error) {
 		return false, nil
 	}
 
-	log.Log.Debug("code at: ", at)
 	return true, nil
 }
 
@@ -753,6 +754,8 @@ func (j *Jk) StartScan(startNumber uint64, handle func(tx *types.Transaction, bl
 		case <-time.NewTimer(3 * time.Second).C:
 
 			client, err := j.Acquire()
+			defer j.Release(client)
+
 			if err != nil {
 				log.Log.Error("acquire client: ", err)
 				return err
