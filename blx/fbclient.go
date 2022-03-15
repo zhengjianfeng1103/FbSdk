@@ -272,6 +272,10 @@ func (j *Jk) SendSync(ctx context.Context, senderPrivate string, receive string,
 	}
 	defer j.Release(client)
 
+	if strings.HasPrefix(senderPrivate, "0x") {
+		senderPrivate = senderPrivate[2:]
+	}
+
 	privateKey, err := crypto.HexToECDSA(senderPrivate)
 	if err != nil {
 		log.Log.Error(fmt.Sprintf("recover key err: %v", err))
@@ -377,6 +381,9 @@ func (j *Jk) SendAsync(ctx context.Context, senderPrivate string, receive string
 	}
 	defer j.Release(client)
 
+	if strings.HasPrefix(senderPrivate, "0x") {
+		senderPrivate = senderPrivate[2:]
+	}
 	privateKey, err := crypto.HexToECDSA(senderPrivate)
 	if err != nil {
 		log.Log.Error(fmt.Sprintf("recover key err: %v", err))
@@ -471,6 +478,10 @@ func (j *Jk) SendContractSync(ctx context.Context, senderPrivate string, receive
 		return
 	}
 	defer j.Release(client)
+
+	if strings.HasPrefix(senderPrivate, "0x") {
+		senderPrivate = senderPrivate[2:]
+	}
 
 	privateKey, err := crypto.HexToECDSA(senderPrivate)
 	if err != nil {
@@ -609,6 +620,9 @@ func (j *Jk) SendContractAsync(ctx context.Context, senderPrivate string, receiv
 	}
 	defer j.Release(client)
 
+	if strings.HasPrefix(senderPrivate, "0x") {
+		senderPrivate = senderPrivate[2:]
+	}
 	privateKey, err := crypto.HexToECDSA(senderPrivate)
 	if err != nil {
 		log.Log.Error(fmt.Sprintf("recover key err: %v", err))
@@ -846,11 +860,13 @@ func (j *Jk) writeErrorTx(tx *types.Transaction, block *types.Block) error {
 			log.Log.Error("create errtx.info: ", err)
 		}
 	} else {
-		open, err = os.OpenFile(path, os.O_RDWR, os.ModeAppend)
+		open, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 		if err != nil {
 			log.Log.Error("open errtx.info: ", err)
 		}
 	}
+
+	defer open.Close()
 
 	msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()), block.BaseFee())
 	if err != nil {
@@ -891,11 +907,13 @@ func (j *Jk) writeLatestNumber(latestNumber uint64) error {
 			log.Log.Error("create latestNumber.info: ", err)
 		}
 	} else {
-		open, err = os.OpenFile(path, os.O_RDWR, os.ModeAppend)
+		open, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 		if err != nil {
 			log.Log.Error("open latestNumber.info: ", err)
 		}
 	}
+
+	defer open.Close()
 
 	formatUint := strconv.FormatUint(latestNumber, 10)
 	_, err = open.Write([]byte(formatUint))
@@ -920,11 +938,13 @@ func (j *Jk) readLatestNumber(highestNumber uint64) uint64 {
 			log.Log.Error("create latestNumber.info: ", err)
 		}
 	} else {
-		open, err = os.OpenFile(path, os.O_RDWR, os.ModeAppend)
+		open, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 		if err != nil {
 			log.Log.Error("open latestNumber.info: ", err)
 		}
 	}
+
+	defer open.Close()
 
 	all, err := ioutil.ReadAll(open)
 	if err != nil {
