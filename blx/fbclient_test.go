@@ -13,7 +13,7 @@ import (
 func TestGetBalance(t *testing.T) {
 
 	address := "0xFd2955B33Fa3bE18b6ef3a90097F8a25F5E5FF85"
-	jk := NewJk(2)
+	jk := NewJk(2, MainNet)
 	of, err := jk.GetBalanceOf(context.Background(), address)
 	if err != nil {
 		t.Error(err)
@@ -26,7 +26,7 @@ func TestGetBalanceOfContract(t *testing.T) {
 
 	address := "0x116663f85a8727410efa33f7051265efae77ed98"
 	contractAddr := "0x03007fcaa04cec04820ed54e1a49b2e0f69cc298"
-	jk := NewJk(2)
+	jk := NewJk(2, MainNet)
 	of, _, err := jk.GetBalanceOfContract(context.Background(), address, contractAddr)
 	if err != nil {
 		t.Error(err)
@@ -39,7 +39,7 @@ func TestJk_SendSync(t *testing.T) {
 
 	senderPrivate := ""
 	to := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
-	jk := NewJk(2)
+	jk := NewJk(2, MainNet)
 	of, err := jk.SendSync(context.Background(), senderPrivate, to, 1.1)
 	if err != nil {
 		t.Error(err)
@@ -53,7 +53,7 @@ func TestJk_SendAsync(t *testing.T) {
 	senderPrivate := ""
 	to := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
 
-	jk := NewJk(2)
+	jk := NewJk(2, MainNet)
 	of, err := jk.SendAsync(context.Background(), senderPrivate, to, 1.1, 0)
 	if err != nil {
 		t.Error(err)
@@ -67,7 +67,7 @@ func TestSendContractSync(t *testing.T) {
 	to := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
 	contractAddr := "0x03007fcaa04cec04820ed54e1a49b2e0f69cc298"
 
-	jk := NewJk(2)
+	jk := NewJk(2, MainNet)
 	of, err := jk.SendContractSync(context.Background(), senderPrivate, to, 1.1, contractAddr)
 	if err != nil {
 		t.Error(err)
@@ -81,7 +81,7 @@ func TestSendContractAsync(t *testing.T) {
 	to := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
 	contractAddr := "0x03007fcaa04cec04820ed54e1a49b2e0f69cc298"
 
-	jk := NewJk(2)
+	jk := NewJk(2, MainNet)
 	of, err := jk.SendContractAsync(context.Background(), senderPrivate, to, 1.1, 0, contractAddr)
 	if err != nil {
 		t.Error(err)
@@ -95,7 +95,7 @@ func TestSendContractSyncBatch(t *testing.T) {
 	to := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
 	contractAddr := "0x03007fcaa04cec04820ed54e1a49b2e0f69cc298"
 
-	jk := NewJk(2)
+	jk := NewJk(2, MainNet)
 
 	for i := 0; i < 10; i++ {
 		of, err := jk.SendContractSync(context.Background(), senderPrivate, to, 1.1, contractAddr)
@@ -110,7 +110,7 @@ func TestSendContractSyncBatch(t *testing.T) {
 
 func TestSendContractAsyncBatch(t *testing.T) {
 
-	jk := NewJk(2)
+	jk := NewJk(2, MainNet)
 
 	senderPrivate := ""
 	to := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
@@ -150,7 +150,7 @@ func TestJk_SendSyncBalanceNotEnough(t *testing.T) {
 	senderPrivate := ""
 	to := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
 
-	jk := NewJk(2)
+	jk := NewJk(2, MainNet)
 	of, err := jk.SendSync(context.Background(), senderPrivate, to, 50)
 	if err != nil {
 		if err == BalanceLessGasAddAmountError {
@@ -164,7 +164,7 @@ func TestJk_SendSyncBalanceNotEnough(t *testing.T) {
 }
 
 func TestStartScan(t *testing.T) {
-	jk := NewJk(2)
+	jk := NewJk(2, MainNet)
 	err := jk.StartScan(1, func(tx *types.Transaction, block *types.Block) error {
 
 		msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()), block.BaseFee())
@@ -192,7 +192,7 @@ func TestStartScan(t *testing.T) {
 }
 
 func TestStartScanError(t *testing.T) {
-	jk := NewJk(2)
+	jk := NewJk(2, MainNet)
 	err := jk.StartScan(1, func(tx *types.Transaction, block *types.Block) error {
 
 		msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()), block.BaseFee())
@@ -220,7 +220,7 @@ func TestStartScanError(t *testing.T) {
 }
 
 func TestJk_IsContract(t *testing.T) {
-	jk := NewJk(2)
+	jk := NewJk(2, MainNet)
 
 	to := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
 	contractAddr := "0x03007fcaa04cec04820ed54e1a49b2e0f69cc298"

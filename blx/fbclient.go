@@ -25,6 +25,8 @@ import (
 )
 
 const MainNet = "https://node.fibochain.org"
+const TestNet = "https://test.fibochain.org"
+
 const MainNetCoin = "FIBO"
 const MainNetChainId = 1230
 const MaxRetrySync = 24
@@ -50,7 +52,7 @@ type Jk struct {
 	closed  bool
 }
 
-func NewJk(size int) *Jk {
+func NewJk(size int, net string) *Jk {
 	cons := make(chan *ethclient.Client, size)
 
 	if size == 0 {
@@ -61,7 +63,7 @@ func NewJk(size int) *Jk {
 
 		timeoutC, fn := context.WithTimeout(context.Background(), 10*time.Second)
 		fn()
-		connect, err := rpc.DialContext(timeoutC, MainNet)
+		connect, err := rpc.DialContext(timeoutC, net)
 		if err != nil {
 			log.Log.Error("connect eth mainNet error", err)
 			continue
