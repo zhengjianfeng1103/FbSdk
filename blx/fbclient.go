@@ -821,7 +821,7 @@ func (j *Jk) StartScan(startNumber uint64, handle func(tx *types.Transaction, bl
 					err := handle(tx, block)
 
 					if err != nil {
-						log.Log.Error("handle tx: ", tx, " err happened ", "record block and to next")
+						log.Log.Error("handle tx: ", tx.Hash(), " err happened ", "record block and to next")
 
 						err = j.writeErrorTx(tx, block)
 						if err != nil {
@@ -860,7 +860,7 @@ func (j *Jk) writeErrorTx(tx *types.Transaction, block *types.Block) error {
 			log.Log.Error("create errtx.info: ", err)
 		}
 	} else {
-		open, err = os.OpenFile(path, os.O_RDWR, os.ModeAppend)
+		open, err = os.OpenFile(path, os.O_WRONLY|os.O_APPEND, 0644)
 		if err != nil {
 			log.Log.Error("open errtx.info: ", err)
 		}

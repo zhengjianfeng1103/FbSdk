@@ -3,6 +3,7 @@ package blx
 import (
 	"context"
 	"crypto/ecdsa"
+	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -183,6 +184,34 @@ func TestStartScan(t *testing.T) {
 		t.Log(fmt.Sprintf("from: %v hash: %v value: %v  to: %v nonce: %v  data: %v height: %v", from, hash, value, to, nonce, data, height))
 
 		return nil
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestStartScanError(t *testing.T) {
+	jk := NewJk(2)
+	err := jk.StartScan(1, func(tx *types.Transaction, block *types.Block) error {
+
+		msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()), block.BaseFee())
+		if err != nil {
+			t.Error("decode to message: ", err)
+			return err
+		}
+
+		height := block.Number()
+		hash := tx.Hash()
+		value := tx.Value()
+		to := tx.To()
+		nonce := tx.Nonce()
+		data := tx.Data()
+		from := msg.From()
+
+		t.Log(fmt.Sprintf("from: %v hash: %v value: %v  to: %v nonce: %v  data: %v height: %v", from, hash, value, to, nonce, data, height))
+
+		return errors.New(fmt.Sprintf("from: %v hash: %v value: %v  to: %v nonce: %v  data: %v height: %v", from, hash, value, to, nonce, data, height))
 	})
 
 	if err != nil {
