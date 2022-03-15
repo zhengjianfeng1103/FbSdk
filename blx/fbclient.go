@@ -860,7 +860,7 @@ func (j *Jk) writeErrorTx(tx *types.Transaction, block *types.Block) error {
 			log.Log.Error("create errtx.info: ", err)
 		}
 	} else {
-		open, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+		open, err = os.OpenFile(path, os.O_RDWR, os.ModeAppend)
 		if err != nil {
 			log.Log.Error("open errtx.info: ", err)
 		}
@@ -907,7 +907,7 @@ func (j *Jk) writeLatestNumber(latestNumber uint64) error {
 			log.Log.Error("create latestNumber.info: ", err)
 		}
 	} else {
-		open, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+		open, err = os.OpenFile(path, os.O_RDWR, os.ModeAppend)
 		if err != nil {
 			log.Log.Error("open latestNumber.info: ", err)
 		}
@@ -938,7 +938,7 @@ func (j *Jk) readLatestNumber(highestNumber uint64) uint64 {
 			log.Log.Error("create latestNumber.info: ", err)
 		}
 	} else {
-		open, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+		open, err = os.OpenFile(path, os.O_RDWR, os.ModeAppend)
 		if err != nil {
 			log.Log.Error("open latestNumber.info: ", err)
 		}
