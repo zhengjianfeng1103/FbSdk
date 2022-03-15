@@ -748,22 +748,28 @@ func (j *Jk) StartScan(startNumber uint64, handle func(tx *types.Transaction, bl
 		return errors.New("start number can not < 1")
 	}
 
+	defer j.Close()
 	latestNumber := uint64(0)
+
+	mutex := sync.Mutex{}
 	for {
 		select {
 		case <-time.NewTimer(3 * time.Second).C:
 
-			client, err := j.Acquire()
-			defer j.Release(client)
+			mutex.Lock()
 
+			client, err := j.Acquire()
 			if err != nil {
 				log.Log.Error("acquire client: ", err)
+				mutex.Unlock()
 				return err
 			}
 
 			highestNumber, err := client.BlockNumber(context.Background())
 			if err != nil {
 				log.Log.Error("get latest block number: ", err)
+				mutex.Unlock()
+				j.Release(client)
 				return err
 			}
 
@@ -777,6 +783,8 @@ func (j *Jk) StartScan(startNumber uint64, handle func(tx *types.Transaction, bl
 			diffHeight := highestNumber - latestNumber
 			if diffHeight <= 0 {
 				log.Log.Debug("diffHeight <= 0: ", diffHeight, " it may no new block or block rollback, stop execute")
+				mutex.Unlock()
+				j.Release(client)
 				return err
 			}
 
@@ -815,9 +823,10 @@ func (j *Jk) StartScan(startNumber uint64, handle func(tx *types.Transaction, bl
 				}
 
 				log.Log.Debug("==============handle end height: ", height, "================================")
-
 			}
 
+			mutex.Unlock()
+			j.Release(client)
 		}
 	}
 }
