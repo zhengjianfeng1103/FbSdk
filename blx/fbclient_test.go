@@ -5,8 +5,10 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"strings"
 	"testing"
 )
 
@@ -88,6 +90,83 @@ func TestSendContractAsync(t *testing.T) {
 	}
 
 	t.Log(of)
+}
+
+func TestJk_GetTransactionByHash(t *testing.T) {
+	hash := "0xb322a75877256098703c8e407354d7f1c72e5f6581a86a8f8f44abb18c3ca218"
+
+	jk := NewJk(2, MainNet)
+	tx, pending, err := jk.GetTransactionByHash(context.Background(), hash)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log("pending: \n", pending)
+
+	fmt.Printf("tx chainId: %v \n", tx.ChainId())
+	fmt.Printf("tx gas price: %v \n", tx.GasPrice())
+	fmt.Printf("tx gas: %v \n", tx.Gas())
+
+	fmt.Printf("tx value: %v \n", tx.Value())
+	fmt.Printf("tx cost: %v \n", tx.Cost())
+}
+
+func TestJk_GetTransactionByReceipt(t *testing.T) {
+	hash := "0x1c62a66c260d6901c5b2f83d8a1e3eaa8f54def4cb2b57d0b330646de39d00fd"
+
+	//hash := "0xda34db2a63ae63010388b89633dd35826a86a0107a031bc0e6a53d80a7279f0f"
+
+	jk := NewJk(2, MainNet)
+	tx, err := jk.GetTransactionReceiptByHash(context.Background(), hash)
+	if err != nil {
+		t.Error(err)
+	}
+
+	fmt.Printf("tx: %+v \n", tx)
+}
+
+func TestJk_GetBlockByHash(t *testing.T) {
+	hash := "0x86fac4cf8bab415d2c92ab81e715c295230d294003c616833a3dc225007b3c8c"
+
+	jk := NewJk(2, MainNet)
+	block, err := jk.GetBlockByHash(context.Background(), hash)
+	if err != nil {
+		t.Error(err)
+	}
+
+	fmt.Printf("%+v height: %v \n", block, block.Number())
+
+	transactions := block.Transactions()
+	for _, tx := range transactions {
+
+		data := tx.Data()
+		fmt.Printf("tx hash: %v \n", tx.Hash())
+		fmt.Printf("tx data: %v \n", data)
+
+		//try parse erc20 data
+		erc20Abi, err := abi.JSON(strings.NewReader(AbiErc20))
+		if err != nil {
+			t.Error("json abi err: ", err)
+		}
+
+		method, ok := erc20Abi.Methods["transfer"]
+		if ok {
+			params, err := method.Inputs.Unpack(data[4:])
+			if err != nil {
+				t.Error(err)
+			}
+
+			t.Log(params)
+		}
+
+		fmt.Printf("tx chainId: %v \n", tx.ChainId())
+		fmt.Printf("tx gas price: %v \n", tx.GasPrice())
+		fmt.Printf("tx gas: %v \n", tx.Gas())
+
+		fmt.Printf("tx value: %v \n", tx.Value())
+		fmt.Printf("tx cost: %v \n", tx.Cost())
+
+	}
 }
 
 func TestSendContractSyncBatch(t *testing.T) {
@@ -193,7 +272,7 @@ func TestStartScan(t *testing.T) {
 
 func TestStartScanError(t *testing.T) {
 	jk := NewJk(2, MainNet)
-	err := jk.StartScan(1, func(tx *types.Transaction, block *types.Block) error {
+	err := jk.StartScan(330600, func(tx *types.Transaction, block *types.Block) error {
 
 		msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()), block.BaseFee())
 		if err != nil {

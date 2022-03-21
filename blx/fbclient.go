@@ -847,6 +847,48 @@ func (j *Jk) StartScan(startNumber uint64, handle func(tx *types.Transaction, bl
 	}
 }
 
+func (j *Jk) GetTransactionReceiptByHash(ctx context.Context, hash string) (*types.Receipt, error) {
+	client, err := j.Acquire()
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := client.TransactionReceipt(ctx, common.HexToHash(hash))
+	if err != nil {
+		return nil, err
+	}
+
+	return tx, nil
+}
+
+func (j *Jk) GetTransactionByHash(ctx context.Context, hash string) (*types.Transaction, bool, error) {
+	client, err := j.Acquire()
+	if err != nil {
+		return nil, false, err
+	}
+
+	tx, pending, err := client.TransactionByHash(ctx, common.HexToHash(hash))
+	if err != nil {
+		return nil, pending, err
+	}
+
+	return tx, false, nil
+}
+
+func (j *Jk) GetBlockByHash(ctx context.Context, hash string) (*types.Block, error) {
+	client, err := j.Acquire()
+	if err != nil {
+		return nil, err
+	}
+
+	block, err := client.BlockByHash(ctx, common.HexToHash(hash))
+	if err != nil {
+		return nil, err
+	}
+
+	return block, nil
+}
+
 func (j *Jk) writeErrorTx(tx *types.Transaction, block *types.Block) error {
 
 	j.rw.Lock()
