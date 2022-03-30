@@ -14,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/zhengjianfeng1103/FbSdk/log"
+	"go.uber.org/zap"
 	"io/ioutil"
 	"math"
 	"math/big"
@@ -265,6 +266,54 @@ func (j *Jk) GetBalanceOfContract(ctx context.Context, address string, contractA
 
 	f, _ := new(big.Float).Quo(fc, fDecimals).Float64()
 	return f, fDecimalsF, nil
+}
+
+func (j *Jk) GetSymbolOfContract(ctx context.Context, contractAddr string) (symbol string, err error) {
+	client, err := j.Acquire()
+	if err != nil {
+		return
+	}
+	defer j.Release(client)
+
+	if contractAddr == "" {
+		return "", ContractNotEmpty
+	}
+
+	to := common.HexToAddress(contractAddr)
+
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	log.Log.Debug("gasPrice", gasPrice)
+
+	erc20Abi, err := abi.JSON(strings.NewReader(AbiErc20))
+	if err != nil {
+		return
+	}
+
+	input, err := erc20Abi.Pack("symbol")
+	if err != nil {
+		return
+	}
+
+	msg := ethereum.CallMsg{
+		To:   &to,
+		Data: input,
+	}
+
+	result, err := client.CallContract(ctx, msg, nil)
+	if err != nil {
+		return
+	}
+
+	//call for symbol
+	unpack, err := erc20Abi.Unpack("symbol", result)
+	if err != nil {
+		return
+	}
+
+	log.Log.Debug("call symbol of result: ", unpack[0])
+
+	bc := unpack[0].(string)
+	return bc, nil
 }
 
 func (j *Jk) SendSync(ctx context.Context, senderPrivate string, receive string, amount float64) (hash string, err error) {
@@ -737,6 +786,122 @@ func (j *Jk) SendContractAsync(ctx context.Context, senderPrivate string, receiv
 
 	hash = txHash.Hex()
 	return
+}
+
+func (j *Jk) SendContractInputDataSync(ctx context.Context, senderPrivate string, inputData []byte, contractAddr string) (hash string, err error) {
+	client, err := j.Acquire()
+
+	if err != nil {
+		return
+	}
+	defer j.Release(client)
+
+	if strings.HasPrefix(senderPrivate, "0x") {
+		senderPrivate = senderPrivate[2:]
+	}
+	privateKey, err := crypto.HexToECDSA(senderPrivate)
+	if err != nil {
+		log.Log.Error(fmt.Sprintf("recover key err: %v", err))
+		return "", PrivateKeyError
+	}
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Log.Error("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+		return "", PrivateKeyError
+	}
+
+	publicKeyBytes := crypto.FromECDSAPub(publicKeyECDSA)
+	log.Log.Debug("Public Key: ", hexutil.Encode(publicKeyBytes))
+
+	address := crypto.PubkeyToAddress(*publicKeyECDSA).Hex()
+	log.Log.Debug("Address: ", address)
+
+	from := common.HexToAddress(address)
+
+	balance, err := client.BalanceAt(ctx, from, nil)
+	if err != nil {
+		return "", err
+	}
+	log.Log.Debug("balance: ", balance)
+
+	gasPrice, err := client.SuggestGasPrice(ctx)
+	if err != nil {
+		log.Log.Error("get balance err: ", err)
+		return "", err
+	}
+
+	to := common.HexToAddress(contractAddr)
+	msg := ethereum.CallMsg{
+		From: from,
+		To:   &to,
+		Data: inputData,
+	}
+	gasLimit, err := client.EstimateGas(ctx, msg)
+	if err != nil {
+		return "", err
+	}
+	log.Log.Debug("gasLimit: ", gasLimit)
+
+	gas := new(big.Int).Mul(gasPrice, big.NewInt(int64(gasLimit)))
+	log.Log.Debug("gas: ", zap.Any("gas", gas))
+
+	if balance.Cmp(gas) <= 0 {
+		return "", errors.New(fmt.Sprintf("gas not enough, gas: %v balance: %v", gas.String(), balance.String()))
+	}
+
+	pendingNonce, err := client.PendingNonceAt(ctx, from)
+	if err != nil {
+		return "", err
+	}
+
+	log.Log.Debug("pendingNonce: ", pendingNonce)
+	unsignedTx := types.NewTransaction(pendingNonce, to, big.NewInt(0), gasLimit, gasPrice, inputData)
+	signedTx, err := types.SignTx(unsignedTx, types.NewEIP155Signer(big.NewInt(MainNetChainId)), privateKey)
+	if err != nil {
+		return "", err
+	}
+
+	err = client.SendTransaction(ctx, signedTx)
+	if err != nil {
+		log.Log.Error("send transaction", err)
+		return "", err
+	}
+
+	txHash := signedTx.Hash()
+	log.Log.Debug("sendTx txHash:", txHash)
+
+	hash = txHash.Hex()
+	retryTimes := 0
+	for {
+		select {
+		case <-time.NewTimer(MaxRetryTimeDurationSeconds * time.Second).C:
+			if retryTimes >= MaxRetrySync {
+				return hash, nil
+			}
+
+			receipt, err := client.TransactionReceipt(ctx, txHash)
+			if err != nil {
+				log.Log.Error("get transaction receipt: ", err)
+				retryTimes++
+				continue
+			}
+
+			if receipt.Status == types.ReceiptStatusSuccessful && receipt.BlockNumber != nil {
+				log.Log.Debug("get transaction success status", " Tx In BlockNumber: ", receipt.BlockNumber, " GasUse: ", receipt.GasUsed, " Logs: ", receipt.Logs)
+				return hash, nil
+			}
+
+			if receipt.Status == types.ReceiptStatusFailed {
+				log.Log.Error("get transaction failed status")
+				return "", SendTransactionFailedError
+			}
+
+		case <-ctx.Done():
+			log.Log.Error("get transaction time out context")
+			return "", ReadTransactionTimeOutError
+		}
+	}
 }
 
 func (j *Jk) IsContract(ctx context.Context, address string) (bool, error) {

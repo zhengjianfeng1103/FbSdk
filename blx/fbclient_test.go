@@ -37,6 +37,17 @@ func TestGetBalanceOfContract(t *testing.T) {
 	t.Log(of)
 }
 
+func TestJk_GetSymbolOfContract(t *testing.T) {
+	contractAddr := "0x03007fcaa04cec04820ed54e1a49b2e0f69cc298"
+	jk := NewJk(2, MainNet)
+	of, err := jk.GetSymbolOfContract(context.Background(), contractAddr)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(of)
+}
+
 func TestJk_SendSync(t *testing.T) {
 
 	senderPrivate := ""
