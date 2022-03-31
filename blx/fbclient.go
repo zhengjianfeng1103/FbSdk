@@ -178,6 +178,7 @@ func (j *Jk) GetPendingNonce(ctx context.Context, address string) (nonce uint64,
 	if err != nil {
 		return 0, err
 	}
+	defer j.Release(client)
 
 	at, err := client.PendingNonceAt(ctx, common.HexToAddress(address))
 	if err != nil {
@@ -1032,6 +1033,7 @@ func (j *Jk) GetTransactionReceiptByHash(ctx context.Context, hash string) (*typ
 	if err != nil {
 		return nil, err
 	}
+	defer j.Release(client)
 
 	tx, err := client.TransactionReceipt(ctx, common.HexToHash(hash))
 	if err != nil {
@@ -1046,6 +1048,7 @@ func (j *Jk) GetTransactionByHash(ctx context.Context, hash string) (*types.Tran
 	if err != nil {
 		return nil, false, err
 	}
+	defer j.Release(client)
 
 	tx, pending, err := client.TransactionByHash(ctx, common.HexToHash(hash))
 	if err != nil {
@@ -1060,6 +1063,7 @@ func (j *Jk) GetBlockByHash(ctx context.Context, hash string) (*types.Block, err
 	if err != nil {
 		return nil, err
 	}
+	defer j.Release(client)
 
 	block, err := client.BlockByHash(ctx, common.HexToHash(hash))
 	if err != nil {
