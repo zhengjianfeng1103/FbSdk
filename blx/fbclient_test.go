@@ -3,6 +3,7 @@ package blx
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -104,7 +105,9 @@ func TestSendContractAsync(t *testing.T) {
 }
 
 func TestJk_GetTransactionByHash(t *testing.T) {
-	hash := "0xb322a75877256098703c8e407354d7f1c72e5f6581a86a8f8f44abb18c3ca218"
+	//hash := "0xaf7a4ec9108db2283bc606f61e439357b796ee1598fc6fd6839e3e78121f819c"
+
+	hash := "0xb0f48964f300df86fcfee6d3f0cfd57acdf53f8474f8787342ac6d8d6a0fede7"
 
 	jk := NewJk(2, MainNet)
 	tx, pending, err := jk.GetTransactionByHash(context.Background(), hash)
@@ -117,13 +120,17 @@ func TestJk_GetTransactionByHash(t *testing.T) {
 	fmt.Printf("tx chainId: %v \n", tx.ChainId())
 	fmt.Printf("tx gas price: %v \n", tx.GasPrice())
 	fmt.Printf("tx gas: %v \n", tx.Gas())
+	fmt.Printf("tx to: %v \n", tx.To())
+
+	//0x02411f5a0000000000000000000000000000000000000000000000000de0b6b3a7640000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000013100000000000000000000000000000000000000000000000000000000000000
+	fmt.Printf("tx data: %v \n", hex.EncodeToString(tx.Data()))
 
 	fmt.Printf("tx value: %v \n", tx.Value())
 	fmt.Printf("tx cost: %v \n", tx.Cost())
 }
 
 func TestJk_GetTransactionByReceipt(t *testing.T) {
-	hash := "0x1c62a66c260d6901c5b2f83d8a1e3eaa8f54def4cb2b57d0b330646de39d00fd"
+	hash := "0xaf7a4ec9108db2283bc606f61e439357b796ee1598fc6fd6839e3e78121f819c"
 
 	//hash := "0xda34db2a63ae63010388b89633dd35826a86a0107a031bc0e6a53d80a7279f0f"
 

@@ -14,7 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/zhengjianfeng1103/FbSdk/log"
-	"go.uber.org/zap"
 	"io/ioutil"
 	"math"
 	"math/big"
@@ -44,6 +43,7 @@ var AmountError = NewJkError("金额有误")
 var ReadTransactionTimeOutError = NewJkError("读取交易信息失败")
 var SendTransactionFailedError = NewJkError("交易失败")
 var ContractNotEmpty = NewJkError("合约地址不能为空")
+var NotAnHexAddress = NewJkError("不是合法0x地址")
 
 type Jk struct {
 	cons    chan *ethclient.Client
@@ -317,6 +317,9 @@ func (j *Jk) GetSymbolOfContract(ctx context.Context, contractAddr string) (symb
 }
 
 func (j *Jk) SendSync(ctx context.Context, senderPrivate string, receive string, amount float64) (hash string, err error) {
+	if !common.IsHexAddress(receive) {
+		return "", NotAnHexAddress
+	}
 	client, err := j.Acquire()
 	if err != nil {
 		return
@@ -426,6 +429,10 @@ func (j *Jk) SendSync(ctx context.Context, senderPrivate string, receive string,
 }
 
 func (j *Jk) SendAsync(ctx context.Context, senderPrivate string, receive string, amount float64, nonce uint64) (hash string, err error) {
+	if !common.IsHexAddress(receive) {
+		return "", NotAnHexAddress
+	}
+
 	client, err := j.Acquire()
 	if err != nil {
 		return
@@ -520,6 +527,10 @@ func (j *Jk) SendAsync(ctx context.Context, senderPrivate string, receive string
 }
 
 func (j *Jk) SendContractSync(ctx context.Context, senderPrivate string, receive string, amount float64, contractAddr string) (hash string, err error) {
+	if !common.IsHexAddress(receive) {
+		return "", NotAnHexAddress
+	}
+
 	if contractAddr == "" {
 		return "", ContractNotEmpty
 	}
@@ -661,6 +672,10 @@ func (j *Jk) SendContractSync(ctx context.Context, senderPrivate string, receive
 }
 
 func (j *Jk) SendContractAsync(ctx context.Context, senderPrivate string, receive string, amount float64, nonce uint64, contractAddr string) (hash string, err error) {
+	if !common.IsHexAddress(receive) {
+		return "", NotAnHexAddress
+	}
+
 	if contractAddr == "" {
 		return "", ContractNotEmpty
 	}
@@ -844,7 +859,7 @@ func (j *Jk) SendContractInputDataSync(ctx context.Context, senderPrivate string
 	log.Log.Debug("gasLimit: ", gasLimit)
 
 	gas := new(big.Int).Mul(gasPrice, big.NewInt(int64(gasLimit)))
-	log.Log.Debug("gas: ", zap.Any("gas", gas))
+	log.Log.Debug("gas: ", gas)
 
 	if balance.Cmp(gas) <= 0 {
 		return "", errors.New(fmt.Sprintf("gas not enough, gas: %v balance: %v", gas.String(), balance.String()))
