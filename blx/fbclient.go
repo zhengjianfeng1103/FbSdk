@@ -846,6 +846,7 @@ func (j *Jk) SendContractInputDataSync(ctx context.Context, senderPrivate string
 		log.Log.Error("get balance err: ", err)
 		return "", err
 	}
+	log.Log.Debug("gasPrice: ", gasPrice)
 
 	to := common.HexToAddress(contractAddr)
 	msg := ethereum.CallMsg{
@@ -853,10 +854,14 @@ func (j *Jk) SendContractInputDataSync(ctx context.Context, senderPrivate string
 		To:   &to,
 		Data: inputData,
 	}
+
 	gasLimit, err := client.EstimateGas(ctx, msg)
 	if err != nil {
+		log.Log.Error("EstimateGas: ", err)
 		return "", err
 	}
+
+	//100000000000 * 10000000
 	log.Log.Debug("gasLimit: ", gasLimit)
 
 	gas := new(big.Int).Mul(gasPrice, big.NewInt(int64(gasLimit)))
@@ -951,81 +956,93 @@ func (j *Jk) StartScan(startNumber uint64, handle func(tx *types.Transaction, bl
 	mutex := sync.Mutex{}
 	for {
 		select {
-		case <-time.NewTimer(3 * time.Second).C:
-
-			mutex.Lock()
-
-			client, err := j.Acquire()
+		case <-time.NewTimer(6 * time.Second).C:
+			err := j.ExecuteBlocks(&mutex, latestNumber, startNumber, handle)
 			if err != nil {
-				log.Log.Error("acquire client: ", err)
-				mutex.Unlock()
-				return err
+				log.Log.Error("ExecuteBlocks err", err, "continues")
+				continue
 			}
-
-			highestNumber, err := client.BlockNumber(context.Background())
-			if err != nil {
-				log.Log.Error("get latest block number: ", err)
-				mutex.Unlock()
-				j.Release(client)
-				return err
-			}
-
-			latestNumber = j.readLatestNumber(highestNumber)
-			if startNumber > latestNumber {
-				latestNumber = startNumber
-			}
-
-			log.Log.Debug("startNumber: ", startNumber, " highestNumber: ", highestNumber, " latestNumber: ", latestNumber)
-
-			diffHeight := highestNumber - latestNumber
-			if diffHeight <= 0 {
-				log.Log.Debug("diffHeight <= 0: ", diffHeight, " it may no new block or block rollback, stop execute")
-				mutex.Unlock()
-				j.Release(client)
-				return err
-			}
-
-			log.Log.Debug("diffHeight: ", diffHeight)
-
-			for height := latestNumber + 1; height < latestNumber+diffHeight; height++ {
-				block, err := client.BlockByNumber(context.Background(), big.NewInt(int64(height)))
-
-				log.Log.Debug("==============handle start height: ", height, "================================")
-
-				if err != nil {
-					log.Log.Error("get block height: ", height, " happened, it may lost height, stop now. ", " err info: ", err)
-					return err
-				}
-
-				transactions := block.Transactions()
-				for _, tx := range transactions {
-					log.Log.Debug("notify handle tx for business", " txHash: ", tx.Hash(), " blockNumber: ", block.Number())
-
-					err := handle(tx, block)
-
-					if err != nil {
-						log.Log.Error("handle tx: ", tx.Hash(), " err happened ", "record block and to next")
-
-						err = j.writeErrorTx(tx, block)
-						if err != nil {
-							log.Log.Error("write tx err info: ", tx, " err happened ", "record block and to next")
-						}
-					}
-				}
-
-				err = j.writeLatestNumber(height)
-				if err != nil {
-					log.Log.Error("write latest number: ", err)
-					return err
-				}
-
-				log.Log.Debug("==============handle end height: ", height, "================================")
-			}
-
-			mutex.Unlock()
-			j.Release(client)
 		}
 	}
+}
+
+func (j *Jk) ExecuteBlocks(mutex *sync.Mutex, startNumber, latestNumber uint64, handle func(tx *types.Transaction, block *types.Block) error) error {
+
+	mutex.Lock()
+	defer func() {
+		log.Log.Debug("defer unlock")
+		mutex.Unlock()
+	}()
+
+	client, err := j.Acquire()
+	defer func() {
+		log.Log.Debug("defer Release")
+		j.Release(client)
+	}()
+
+	if err != nil {
+		log.Log.Error("acquire client: ", err)
+		return err
+	}
+
+	highestNumber, err := client.BlockNumber(context.Background())
+	if err != nil {
+		log.Log.Error("get latest block number: ", err)
+		return err
+	}
+
+	latestNumber = j.readLatestNumber(highestNumber)
+	if startNumber > latestNumber {
+		latestNumber = startNumber
+	}
+
+	log.Log.Debug("startNumber: ", startNumber, " highestNumber: ", highestNumber, " latestNumber: ", latestNumber)
+
+	diffHeight := highestNumber - latestNumber
+	if diffHeight <= 0 {
+		log.Log.Debug("diffHeight <= 0: ", diffHeight, " it may no new block or block rollback, stop execute")
+		return err
+	}
+
+	log.Log.Debug("diffHeight: ", diffHeight)
+
+	for height := latestNumber + 1; height < latestNumber+diffHeight; height++ {
+		var block *types.Block
+		block, err = client.BlockByNumber(context.Background(), big.NewInt(int64(height)))
+
+		log.Log.Debug("==============handle start height: ", height, "================================")
+
+		if err != nil {
+			log.Log.Error("get block height: ", height, " happened, it may lost height, stop now. ", " err info: ", err)
+			return err
+		}
+
+		transactions := block.Transactions()
+		for _, tx := range transactions {
+			log.Log.Debug("notify handle tx for business", " txHash: ", tx.Hash(), " blockNumber: ", block.Number())
+
+			err = handle(tx, block)
+
+			if err != nil {
+				log.Log.Error("handle tx: ", tx.Hash(), " err happened ", "record block and to next")
+
+				err = j.writeErrorTx(tx, block)
+				if err != nil {
+					log.Log.Error("write tx err info: ", tx, " err happened ", "record block and to next")
+				}
+			}
+		}
+
+		err = j.writeLatestNumber(height)
+		if err != nil {
+			log.Log.Error("write latest number: ", err)
+			return err
+		}
+
+		log.Log.Debug("==============handle end height: ", height, "================================")
+	}
+
+	return nil
 }
 
 func (j *Jk) GetTransactionReceiptByHash(ctx context.Context, hash string) (*types.Receipt, error) {

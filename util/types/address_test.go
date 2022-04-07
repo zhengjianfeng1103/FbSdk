@@ -6,7 +6,7 @@ import (
 )
 
 func TestAccAddress_HexString1(t *testing.T) {
-	addr, err := AccAddressFromHex("0xEC5449e1719a4f3555Ef71A98706BDBbFbaCA2C5")
+	addr, err := AccAddressFromHex("116663f85A8727410EFA33F7051265EFAE77ed98")
 	if err != nil {
 		t.Error(err)
 	}
