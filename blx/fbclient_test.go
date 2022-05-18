@@ -13,12 +13,13 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"math/big"
 	"strings"
+	"sync"
 	"testing"
 )
 
 func TestGetBalance(t *testing.T) {
 
-	address := "0xFd2955B33Fa3bE18b6ef3a90097F8a25F5E5FF85"
+	address := "0xffa27ebf4278105425b6D211F3557e2D3433F9A7"
 	jk := NewJk(2, MainNet)
 	of, err := jk.GetBalanceOf(context.Background(), address)
 	if err != nil {
@@ -30,8 +31,8 @@ func TestGetBalance(t *testing.T) {
 
 func TestGetBalanceOfContract(t *testing.T) {
 
-	address := "0x116663f85a8727410efa33f7051265efae77ed98"
-	contractAddr := "0x03007fcaa04cec04820ed54e1a49b2e0f69cc298"
+	address := "0xffa27ebf4278105425b6D211F3557e2D3433F9A7"
+	contractAddr := "0x398dFf6e65a950470D84647fAdE72E350f5d7Cd2"
 	jk := NewJk(2, MainNet)
 	of, _, err := jk.GetBalanceOfContract(context.Background(), address, contractAddr)
 	if err != nil {
@@ -39,6 +40,17 @@ func TestGetBalanceOfContract(t *testing.T) {
 	}
 
 	t.Log(of)
+}
+
+func TestJk_SendRawTx(t *testing.T) {
+	jk := NewJk(2, MainNet)
+	rawTx := "f9016f82022385174876e800830683d6942d5fb3e0582cd95ee783389284a7768aa21e360280b90104aac47eaf00000000000000000000000046556c176d38e792823a933ccd3df042b522ace3000000000000000000000000000000000000000000000000000000000000002200000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000005d68747470733a2f2f6e667473746f726167652e6c696e6b2f697066732f62616679626569673665706e326f783766676d32617a796d756b6c6d347a6b6b766375636277736b3468646d786e793533376f64756c32346b6d792f626c6f620000008209c0a0c59e912de87b7b67206df3e14941af3e4a88b14e7334318335b8072917e3d4e1a02c952c8646ffec2d2255a6d55292b61475d91d61b9cb9de5acbfef935804365f"
+	hash, err := jk.SendRawTx(context.Background(), rawTx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(hash)
 }
 
 func TestJk_GetSymbolOfContract(t *testing.T) {
@@ -548,16 +560,16 @@ func TestSendContractInputDataSync(t *testing.T) {
 		t.Error(err)
 	}
 
-	//encodeHex := hex.EncodeToString(inputData)
-	//t.Log("inputData", "0x" + encodeHex)
-	//
-	//unpack, err := abiJsons.Unpack("WithdrawFrc20", inputData)
-	//if err != nil {
-	//	t.Error(err)
-	//}
-	//t.Log("unpack", unpack)
+	encodeHex := hex.EncodeToString(inputData)
+	t.Log("inputData", "0x"+encodeHex)
 
-	senderPrivate := "9515496153707b43962be4426e247f0a8ce3ce0968fcf53531d524c1df276d0c"
+	unpack, err := abiJsons.Unpack("WithdrawFrc20", inputData)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log("unpack", unpack)
+
+	senderPrivate := ""
 	contractAddr := "0xb194A5113C373494ceE66B516a4e8c203b1182b1"
 
 	jk := NewJk(2, MainNet)
@@ -650,7 +662,7 @@ func TestJk_GetTransactionByHash(t *testing.T) {
 }
 
 func TestJk_GetTransactionByReceipt(t *testing.T) {
-	hash := "0xe5ecd42ebcfa7d8d41bf1580425d05c79fe1ccbee61d25dbfee584978f344ec3"
+	hash := "0xca6cf9546efbf35238233a8b1669f852657809bc95fb092cadaaecf47c6fcfde"
 
 	//hash := "0xda34db2a63ae63010388b89633dd35826a86a0107a031bc0e6a53d80a7279f0f"
 
@@ -839,8 +851,8 @@ func TestStartScanError(t *testing.T) {
 func TestJk_IsContract(t *testing.T) {
 	jk := NewJk(2, MainNet)
 
-	to := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
-	contractAddr := "0x03007fcaa04cec04820ed54e1a49b2e0f69cc298"
+	to := "0x398dFf6e65a950470D84647fAdE72E350f5d7Cd2"
+	contractAddr := "0xfd2955b33fa3be18b6ef3a90097f8a25f5e5ff85"
 
 	isC, err := jk.IsContract(context.Background(), to)
 	if err != nil {
@@ -848,7 +860,9 @@ func TestJk_IsContract(t *testing.T) {
 	}
 
 	if isC {
-		t.Error(to, "not a contract address")
+		t.Error(to, "is a contract address")
+	} else {
+		t.Error(to, "is not a contract address")
 	}
 
 	isCC, err := jk.IsContract(context.Background(), contractAddr)
@@ -856,8 +870,48 @@ func TestJk_IsContract(t *testing.T) {
 		t.Error(err)
 	}
 
-	if !isCC {
+	if isCC {
 		t.Error(contractAddr, "is a contract address")
+	} else {
+		t.Error(contractAddr, "is not a contract address")
 	}
 
+}
+
+func TestJk_SendContractSyncWithNonce(t *testing.T) {
+	jk := NewJk(2, MainNet2)
+	sender := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
+	senderPrivate := ""
+
+	to := "0x38c78A3De6E2aFD77984B401f92be9094d932af8"
+
+	amount := 1.0
+	contractAddr := "0x097dD501eC294Cc8c541f0B4b49a0255ed785894"
+
+	startNonce, err := jk.GetPendingNonce(context.Background(), sender)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	group := sync.WaitGroup{}
+	for i := 0; i < 3; i++ {
+
+		group.Add(1)
+		go func(nonce uint64) {
+			t.Log("nonce: ", nonce)
+
+			var hash string
+			hash, err = jk.SendContractSyncWithNonce(context.Background(), senderPrivate, to, amount, contractAddr, nonce)
+			if err != nil {
+				t.Error(err)
+			}
+
+			group.Done()
+			t.Log("success hash: ", hash)
+		}(startNonce)
+
+		startNonce++
+	}
+
+	group.Wait()
 }

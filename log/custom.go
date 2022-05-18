@@ -9,7 +9,7 @@ var Log *logrus.Logger
 
 func init() {
 	logger := logrus.New()
-	logger.SetLevel(logrus.DebugLevel)
+	logger.SetLevel(logrus.InfoLevel)
 	logger.SetOutput(os.Stdout)
 	Log = logger
 }

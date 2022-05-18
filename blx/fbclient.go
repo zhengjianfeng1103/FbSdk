@@ -3,6 +3,7 @@ package blx
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum"
@@ -12,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/zhengjianfeng1103/FbSdk/log"
 	"io/ioutil"
@@ -26,6 +28,7 @@ import (
 
 const MainNet = "https://node.fibochain.org"
 const TestNet = "https://test.fibochain.org"
+const MainNet2 = "http://13.228.22.173:8545"
 
 const MainNetCoin = "FIBO"
 const MainNetChainId = 1230
@@ -44,6 +47,8 @@ var ReadTransactionTimeOutError = NewJkError("读取交易信息失败")
 var SendTransactionFailedError = NewJkError("交易失败")
 var ContractNotEmpty = NewJkError("合约地址不能为空")
 var NotAnHexAddress = NewJkError("不是合法0x地址")
+var NonceNotEmpty = NewJkError("交易序号不能为空")
+var NonceToSmall = NewJkError("交易序号太小")
 
 type Jk struct {
 	cons    chan *ethclient.Client
@@ -429,6 +434,64 @@ func (j *Jk) SendSync(ctx context.Context, senderPrivate string, receive string,
 	}
 }
 
+//SendRawTx rawTx hexString no 0x
+func (j *Jk) SendRawTx(ctx context.Context, rawTx string) (hash string, txResult *types.Transaction, err error) {
+	client, err := j.Acquire()
+	if err != nil {
+		return
+	}
+	defer j.Release(client)
+
+	var tx *types.Transaction
+	rawTxBytes, err := hex.DecodeString(rawTx)
+	if err != nil {
+		return "", nil, err
+	}
+	err = rlp.DecodeBytes(rawTxBytes, &tx)
+	if err != nil {
+		return "", nil, err
+	}
+
+	hash = tx.Hash().String()
+	log.Log.Debug("sendRawTx: ", tx.Hash().String())
+
+	err = client.SendTransaction(context.Background(), tx)
+	if err != nil {
+		return hash, tx, err
+	}
+
+	retryTimes := 0
+	for {
+		select {
+		case <-time.NewTimer(MaxRetryTimeDurationSeconds * time.Second).C:
+			if retryTimes >= MaxRetrySync {
+				return hash, tx, nil
+			}
+
+			receipt, err := j.GetTransactionReceiptByHash(ctx, hash)
+			if err != nil {
+				log.Log.Error("get transaction receipt: ", err)
+				retryTimes++
+				continue
+			}
+
+			if receipt.Status == types.ReceiptStatusSuccessful && receipt.BlockNumber != nil {
+				log.Log.Debug("get transaction success status", " Tx In BlockNumber: ", receipt.BlockNumber, " GasUse: ", receipt.GasUsed, " Logs: ", receipt.Logs)
+				return hash, tx, nil
+			}
+
+			if receipt.Status == types.ReceiptStatusFailed {
+				log.Log.Error("get transaction failed status")
+				return hash, tx, SendTransactionFailedError
+			}
+
+		case <-ctx.Done():
+			log.Log.Error("get transaction time out context")
+			return hash, tx, ReadTransactionTimeOutError
+		}
+	}
+}
+
 func (j *Jk) SendAsync(ctx context.Context, senderPrivate string, receive string, amount float64, nonce uint64) (hash string, err error) {
 	if !common.IsHexAddress(receive) {
 		return "", NotAnHexAddress
@@ -596,6 +659,162 @@ func (j *Jk) SendContractSync(ctx context.Context, senderPrivate string, receive
 
 	pendingNonce, err := client.PendingNonceAt(ctx, from)
 	log.Log.Debug("pendingNonce: ", pendingNonce)
+
+	erc20Abi, err := abi.JSON(strings.NewReader(AbiErc20))
+	if err != nil {
+		return
+	}
+
+	input, err := erc20Abi.Pack("transfer", to, coins)
+	if err != nil {
+		return
+	}
+
+	msgGas := ethereum.CallMsg{
+		From: from,
+		To:   &contract,
+		Data: input,
+	}
+
+	gasLimit, err := client.EstimateGas(ctx, msgGas)
+	log.Log.Debug("gasLimit: ", gasLimit)
+
+	if err != nil {
+		return "", err
+	}
+
+	gas := new(big.Int).Mul(gasPrice, big.NewInt(int64(gasLimit)))
+	log.Log.Debug("gas: ", gas)
+
+	if balance.Cmp(gas) <= 0 {
+		return "", BalanceLessGasError
+	}
+
+	unsignedTx := types.NewTransaction(pendingNonce, contract, big.NewInt(0), gasLimit, gasPrice, input)
+	signedTx, _ := types.SignTx(unsignedTx, types.NewEIP155Signer(big.NewInt(MainNetChainId)), privateKey)
+
+	err = client.SendTransaction(ctx, signedTx)
+	if err != nil {
+		log.Log.Error("send transaction", err)
+		return "", err
+	}
+
+	txHash := signedTx.Hash()
+	log.Log.Debug("sendTx txHash:", txHash)
+
+	hash = txHash.Hex()
+	retryTimes := 0
+	for {
+		select {
+		case <-time.NewTimer(MaxRetryTimeDurationSeconds * time.Second).C:
+			if retryTimes >= MaxRetrySync {
+				return hash, nil
+			}
+
+			receipt, err := client.TransactionReceipt(ctx, txHash)
+			if err != nil {
+				log.Log.Error("get transaction receipt: ", err)
+				retryTimes++
+				continue
+			}
+
+			if receipt.Status == types.ReceiptStatusSuccessful && receipt.BlockNumber != nil {
+				log.Log.Debug("get transaction success status", " Tx In BlockNumber: ", receipt.BlockNumber, " GasUse: ", receipt.GasUsed, " Logs: ", receipt.Logs)
+				return hash, nil
+			}
+
+			if receipt.Status == types.ReceiptStatusFailed {
+				log.Log.Error("get transaction failed status")
+				return "", SendTransactionFailedError
+			}
+
+		case <-ctx.Done():
+			log.Log.Error("get transaction time out context")
+			return "", ReadTransactionTimeOutError
+		}
+	}
+}
+
+func (j *Jk) SendContractSyncWithNonce(ctx context.Context, senderPrivate string, receive string, amount float64, contractAddr string, pendingNonce uint64) (hash string, err error) {
+	if !common.IsHexAddress(receive) {
+		return "", NotAnHexAddress
+	}
+
+	if contractAddr == "" {
+		return "", ContractNotEmpty
+	}
+
+	if pendingNonce == 0 {
+		return "", NonceNotEmpty
+	}
+
+	client, err := j.Acquire()
+	if err != nil {
+		return
+	}
+	defer j.Release(client)
+
+	if strings.HasPrefix(senderPrivate, "0x") {
+		senderPrivate = senderPrivate[2:]
+	}
+
+	privateKey, err := crypto.HexToECDSA(senderPrivate)
+	if err != nil {
+		log.Log.Error(fmt.Sprintf("recover key err: %v", err))
+		return "", PrivateKeyError
+	}
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Log.Error("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+		return "", PrivateKeyError
+	}
+
+	publicKeyBytes := crypto.FromECDSAPub(publicKeyECDSA)
+	log.Log.Debug("Public Key: ", hexutil.Encode(publicKeyBytes))
+
+	address := crypto.PubkeyToAddress(*publicKeyECDSA).Hex()
+	log.Log.Debug("Address: ", address)
+
+	balanceContract, decimals, err := j.GetBalanceOfContract(ctx, address, contractAddr)
+	if err != nil {
+		return "", err
+	}
+
+	if balanceContract < amount {
+		return "", BalanceLessAmountError
+	}
+
+	from := common.HexToAddress(address)
+	to := common.HexToAddress(receive)
+	contract := common.HexToAddress(contractAddr)
+
+	strAmount := fmt.Sprintf("%f", amount)
+	f, success := new(big.Float).SetString(strAmount)
+	if !success {
+		return "", AmountError
+	}
+
+	fCoins := new(big.Float).Mul(f, big.NewFloat(decimals))
+	coins, _ := fCoins.Int(nil)
+
+	log.Log.Debug("from: ", from, " to: ", to, " contractAddr: ", contractAddr, " coins: ", coins)
+
+	gasPrice, err := client.SuggestGasPrice(ctx)
+	log.Log.Debug("gasPrice: ", gasPrice)
+
+	balance, err := client.BalanceAt(ctx, from, nil)
+	log.Log.Debug("balance: ", balance)
+
+	pendingNonceNew, err := client.PendingNonceAt(ctx, from)
+	if err != nil {
+		return "", err
+	}
+
+	log.Log.Debug("pendingNonce: ", pendingNonce, " pendingNonceNew: ", pendingNonceNew)
+	if pendingNonce < pendingNonceNew {
+		return "", NonceToSmall
+	}
 
 	erc20Abi, err := abi.JSON(strings.NewReader(AbiErc20))
 	if err != nil {
@@ -938,11 +1157,13 @@ func (j *Jk) IsContract(ctx context.Context, address string) (bool, error) {
 		return false, err
 	}
 
-	if string(at) == "" {
-		return false, nil
+	log.Log.Error("code: ", string(at))
+
+	if string(at) != "" {
+		return true, nil
 	}
 
-	return true, nil
+	return false, nil
 }
 
 func (j *Jk) StartScan(startNumber uint64, handle func(tx *types.Transaction, block *types.Block) error) error {
