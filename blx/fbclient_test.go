@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/sirupsen/logrus"
 	"math/big"
 	"strings"
 	"sync"
@@ -22,7 +23,7 @@ import (
 func TestGetBalance(t *testing.T) {
 
 	address := "0xffa27ebf4278105425b6D211F3557e2D3433F9A7"
-	jk := NewJk(2, MainNet)
+	jk := NewJk(2, MainNet, logrus.DebugLevel)
 	of, err := jk.GetBalanceOf(context.Background(), address)
 	if err != nil {
 		t.Error(err)
@@ -35,7 +36,7 @@ func TestGetBalanceOfContract(t *testing.T) {
 
 	address := "0xffa27ebf4278105425b6D211F3557e2D3433F9A7"
 	contractAddr := "0x398dFf6e65a950470D84647fAdE72E350f5d7Cd2"
-	jk := NewJk(2, MainNet)
+	jk := NewJk(2, MainNet, logrus.DebugLevel)
 	of, _, err := jk.GetBalanceOfContract(context.Background(), address, contractAddr)
 	if err != nil {
 		t.Error(err)
@@ -45,7 +46,7 @@ func TestGetBalanceOfContract(t *testing.T) {
 }
 
 func TestJk_SendRawTx(t *testing.T) {
-	jk := NewJk(2, MainNet)
+	jk := NewJk(2, MainNet, logrus.DebugLevel)
 	rawTx := "f9016d7285174876e8008305c5e7942d5fb3e0582cd95ee783389284a7768aa21e360280b90104b03fa66a00000000000000000000000046556c176d38e792823a933ccd3df042b522ace30000000000000000000000008394a30ea38c23164d178651fb9c6c826d809696000000000000000000000000000000000000000000000000000000000000003a0000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000005d68747470733a2f2f6e667473746f726167652e6c696e6b2f697066732f62616679626569626876786f7933757a7836786667687969326b6764706e786a6b73367167327677786c776a6d64776f346d33786f6173786273792f626c6f620000008209c0a0815c47acb79b70a416fd0a72511aa94bacaf7fc3958b2e14336370ae5524ab1da048553fd8bad32480b762db6f245a9cbc2ac2e2fad50c2386859c4be120ffdedd"
 	hash, _, err := jk.SendRawTx(context.Background(), rawTx)
 	if err != nil {
@@ -57,7 +58,7 @@ func TestJk_SendRawTx(t *testing.T) {
 
 func TestJk_GetSymbolOfContract(t *testing.T) {
 	contractAddr := "0x03007fcaa04cec04820ed54e1a49b2e0f69cc298"
-	jk := NewJk(2, MainNet)
+	jk := NewJk(2, MainNet, logrus.DebugLevel)
 	of, err := jk.GetSymbolOfContract(context.Background(), contractAddr)
 	if err != nil {
 		t.Error(err)
@@ -574,7 +575,7 @@ func TestSendContractInputDataSync(t *testing.T) {
 	senderPrivate := ""
 	contractAddr := "0xb194A5113C373494ceE66B516a4e8c203b1182b1"
 
-	jk := NewJk(2, MainNet)
+	jk := NewJk(2, MainNet, logrus.DebugLevel)
 	hash, err := jk.SendContractInputDataSync(context.Background(), senderPrivate, inputData, contractAddr)
 	if err != nil {
 		t.Error(err)
@@ -587,7 +588,7 @@ func TestJk_SendSync(t *testing.T) {
 
 	senderPrivate := ""
 	to := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
-	jk := NewJk(2, MainNet)
+	jk := NewJk(2, MainNet, logrus.DebugLevel)
 	of, err := jk.SendSync(context.Background(), senderPrivate, to, 1.1)
 	if err != nil {
 		t.Error(err)
@@ -601,7 +602,7 @@ func TestJk_SendAsync(t *testing.T) {
 	senderPrivate := ""
 	to := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
 
-	jk := NewJk(2, MainNet)
+	jk := NewJk(2, MainNet, logrus.DebugLevel)
 	of, err := jk.SendAsync(context.Background(), senderPrivate, to, 1.1, 0)
 	if err != nil {
 		t.Error(err)
@@ -615,7 +616,7 @@ func TestSendContractSync(t *testing.T) {
 	to := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
 	contractAddr := "0x03007fcaa04cec04820ed54e1a49b2e0f69cc298"
 
-	jk := NewJk(2, MainNet)
+	jk := NewJk(2, MainNet, logrus.DebugLevel)
 	of, err := jk.SendContractSync(context.Background(), senderPrivate, to, 1.1, contractAddr)
 	if err != nil {
 		t.Error(err)
@@ -629,7 +630,7 @@ func TestSendContractAsync(t *testing.T) {
 	to := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
 	contractAddr := "0x03007fcaa04cec04820ed54e1a49b2e0f69cc298"
 
-	jk := NewJk(2, MainNet)
+	jk := NewJk(2, MainNet, logrus.DebugLevel)
 	of, err := jk.SendContractAsync(context.Background(), senderPrivate, to, 1.1, 0, contractAddr)
 	if err != nil {
 		t.Error(err)
@@ -643,7 +644,7 @@ func TestJk_GetTransactionByHash(t *testing.T) {
 
 	hash := "0xb0f48964f300df86fcfee6d3f0cfd57acdf53f8474f8787342ac6d8d6a0fede7"
 
-	jk := NewJk(2, MainNet)
+	jk := NewJk(2, MainNet, logrus.DebugLevel)
 	tx, pending, err := jk.GetTransactionByHash(context.Background(), hash)
 	if err != nil {
 		t.Error(err)
@@ -668,7 +669,7 @@ func TestJk_GetTransactionByReceipt(t *testing.T) {
 
 	//hash := "0xda34db2a63ae63010388b89633dd35826a86a0107a031bc0e6a53d80a7279f0f"
 
-	jk := NewJk(2, MainNet)
+	jk := NewJk(2, MainNet, logrus.DebugLevel)
 	tx, err := jk.GetTransactionReceiptByHash(context.Background(), hash)
 	if err != nil {
 		t.Error(err)
@@ -680,7 +681,7 @@ func TestJk_GetTransactionByReceipt(t *testing.T) {
 func TestJk_GetBlockByHash(t *testing.T) {
 	hash := "0x86fac4cf8bab415d2c92ab81e715c295230d294003c616833a3dc225007b3c8c"
 
-	jk := NewJk(2, MainNet)
+	jk := NewJk(2, MainNet, logrus.DebugLevel)
 	block, err := jk.GetBlockByHash(context.Background(), hash)
 	if err != nil {
 		t.Error(err)
@@ -726,7 +727,7 @@ func TestSendContractSyncBatch(t *testing.T) {
 	to := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
 	contractAddr := "0x03007fcaa04cec04820ed54e1a49b2e0f69cc298"
 
-	jk := NewJk(2, MainNet)
+	jk := NewJk(2, MainNet, logrus.DebugLevel)
 
 	for i := 0; i < 10; i++ {
 		of, err := jk.SendContractSync(context.Background(), senderPrivate, to, 1.1, contractAddr)
@@ -741,7 +742,7 @@ func TestSendContractSyncBatch(t *testing.T) {
 
 func TestSendContractAsyncBatch(t *testing.T) {
 
-	jk := NewJk(2, MainNet)
+	jk := NewJk(2, MainNet, logrus.DebugLevel)
 
 	senderPrivate := ""
 	to := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
@@ -781,7 +782,7 @@ func TestJk_SendSyncBalanceNotEnough(t *testing.T) {
 	senderPrivate := ""
 	to := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
 
-	jk := NewJk(2, MainNet)
+	jk := NewJk(2, MainNet, logrus.DebugLevel)
 	of, err := jk.SendSync(context.Background(), senderPrivate, to, 50)
 	if err != nil {
 		if err == BalanceLessGasAddAmountError {
@@ -795,7 +796,7 @@ func TestJk_SendSyncBalanceNotEnough(t *testing.T) {
 }
 
 func TestStartScan(t *testing.T) {
-	jk := NewJk(2, MainNet)
+	jk := NewJk(2, MainNet, logrus.DebugLevel)
 	err := jk.StartScan(1, 2*time.Second, func(tx *types.Transaction, block *types.Block) error {
 
 		msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()), block.BaseFee())
@@ -823,7 +824,7 @@ func TestStartScan(t *testing.T) {
 }
 
 func TestStartScanError(t *testing.T) {
-	jk := NewJk(2, MainNet)
+	jk := NewJk(2, MainNet, logrus.DebugLevel)
 	err := jk.StartScan(330600, 2*time.Second, func(tx *types.Transaction, block *types.Block) error {
 
 		msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()), block.BaseFee())
@@ -851,7 +852,7 @@ func TestStartScanError(t *testing.T) {
 }
 
 func TestJk_IsContract(t *testing.T) {
-	jk := NewJk(2, MainNet)
+	jk := NewJk(2, MainNet, logrus.DebugLevel)
 
 	to := "0x398dFf6e65a950470D84647fAdE72E350f5d7Cd2"
 	contractAddr := "0xfd2955b33fa3be18b6ef3a90097f8a25f5e5ff85"
@@ -881,7 +882,7 @@ func TestJk_IsContract(t *testing.T) {
 }
 
 func TestJk_SendContractSyncWithNonce(t *testing.T) {
-	jk := NewJk(2, MainNet2)
+	jk := NewJk(2, MainNet2, logrus.DebugLevel)
 	sender := "0x6cAa27dFc890d772B5fA3dB3dAaa39Bf576DC109"
 	senderPrivate := ""
 

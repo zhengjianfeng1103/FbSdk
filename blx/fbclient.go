@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/sirupsen/logrus"
 	"github.com/zhengjianfeng1103/FbSdk/log"
 	"io/ioutil"
 	"math"
@@ -58,7 +59,9 @@ type Jk struct {
 	closed  bool
 }
 
-func NewJk(size int, net string) *Jk {
+func NewJk(size int, net string, level logrus.Level) *Jk {
+	log.Init(level)
+
 	cons := make(chan *ethclient.Client, size)
 
 	if size == 0 {

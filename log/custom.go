@@ -7,9 +7,9 @@ import (
 
 var Log *logrus.Logger
 
-func init() {
+func Init(level logrus.Level) {
 	logger := logrus.New()
-	logger.SetLevel(logrus.InfoLevel)
+	logger.SetLevel(level)
 	logger.SetOutput(os.Stdout)
 	Log = logger
 }
