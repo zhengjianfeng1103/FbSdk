@@ -61,7 +61,6 @@ type Jk struct {
 
 func NewJk(size int, net string, level logrus.Level) *Jk {
 	log.Init(level)
-
 	cons := make(chan *ethclient.Client, size)
 
 	if size == 0 {
