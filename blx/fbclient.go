@@ -1166,7 +1166,7 @@ func (j *Jk) IsContract(ctx context.Context, address string) (bool, error) {
 	return false, nil
 }
 
-func (j *Jk) StartScan(startNumber uint64, handle func(tx *types.Transaction, block *types.Block) error) error {
+func (j *Jk) StartScan(startNumber uint64, timeInternal time.Duration, handle func(tx *types.Transaction, block *types.Block) error) error {
 	if startNumber < 1 {
 		return errors.New("start number can not < 1")
 	}
@@ -1177,7 +1177,7 @@ func (j *Jk) StartScan(startNumber uint64, handle func(tx *types.Transaction, bl
 	mutex := sync.Mutex{}
 	for {
 		select {
-		case <-time.NewTimer(6 * time.Second).C:
+		case <-time.NewTimer(timeInternal).C:
 			err := j.ExecuteBlocks(&mutex, latestNumber, startNumber, handle)
 			if err != nil {
 				log.Log.Error("ExecuteBlocks err", err, "continues")

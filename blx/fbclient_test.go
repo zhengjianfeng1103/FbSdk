@@ -11,10 +11,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rlp"
 	"math/big"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestGetBalance(t *testing.T) {
@@ -794,7 +796,7 @@ func TestJk_SendSyncBalanceNotEnough(t *testing.T) {
 
 func TestStartScan(t *testing.T) {
 	jk := NewJk(2, MainNet)
-	err := jk.StartScan(1, func(tx *types.Transaction, block *types.Block) error {
+	err := jk.StartScan(1, 2*time.Second, func(tx *types.Transaction, block *types.Block) error {
 
 		msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()), block.BaseFee())
 		if err != nil {
@@ -822,7 +824,7 @@ func TestStartScan(t *testing.T) {
 
 func TestStartScanError(t *testing.T) {
 	jk := NewJk(2, MainNet)
-	err := jk.StartScan(330600, func(tx *types.Transaction, block *types.Block) error {
+	err := jk.StartScan(330600, 2*time.Second, func(tx *types.Transaction, block *types.Block) error {
 
 		msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()), block.BaseFee())
 		if err != nil {
@@ -914,4 +916,66 @@ func TestJk_SendContractSyncWithNonce(t *testing.T) {
 	}
 
 	group.Wait()
+}
+
+func TestParseRawSign(t *testing.T) {
+
+	rawTx := "f8ec4785174876e80083010445940733b2a674a1b9f5cf5af33b6360d42b21a5374a80b884c0c18edb0000000000000000000000002b6d33afaad162fd08f07ab8a44ea0b6fc1a831d00000000000000000000000000000000000000000000000000000000000004d300000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000de0b6b3a76400008209c0a0a93485b80247fd1808673c20096141317ad9b2999c849a135f0816de7d1411eaa07f3acd1ae99c2ebbc048bcc58aee9470bbd29661ac40b1e544babb7a604bc54f"
+
+	var tx *types.Transaction
+	rawTxBytes, err := hex.DecodeString(rawTx)
+	if err != nil {
+		t.Error(err)
+	}
+	err = rlp.DecodeBytes(rawTxBytes, &tx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	baseFee, _ := new(big.Int).SetString("100000", 10)
+	msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()), baseFee)
+	if err != nil {
+		t.Error("decode to message: ", err)
+	}
+
+	hash := tx.Hash()
+	value := tx.Value()
+	to := tx.To()
+	nonce := tx.Nonce()
+	data := tx.Data()
+	from := msg.From()
+
+	t.Log(fmt.Sprintf("from: %v hash: %v value: %v  to: %v nonce: %v  data: %v ", from, hash, value, to, nonce, data))
+
+}
+
+func TestParseRawSign2(t *testing.T) {
+
+	rawTx := "f8f44585174876e80083010445940733b2a674a1b9f5cf5af33b6360d42b21a5374a880de0b6b3a7640000b884c0c18edb0000000000000000000000002b6d33afaad162fd08f07ab8a44ea0b6fc1a831d00000000000000000000000000000000000000000000000000000000000004d300000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000de0b6b3a76400008209bfa0d50c7e3281b26b2b0f483040ad167f9e0fa008799f7b597c439d5c9da5dd4d26a0260ca0dc4c1045606dd1756c813a317c443a26b4781edb7a986cfecca196370d"
+
+	var tx *types.Transaction
+	rawTxBytes, err := hex.DecodeString(rawTx)
+	if err != nil {
+		t.Error(err)
+	}
+	err = rlp.DecodeBytes(rawTxBytes, &tx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	baseFee, _ := new(big.Int).SetString("100000", 10)
+	msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()), baseFee)
+	if err != nil {
+		t.Error("decode to message: ", err)
+	}
+
+	hash := tx.Hash()
+	value := tx.Value()
+	to := tx.To()
+	nonce := tx.Nonce()
+	data := tx.Data()
+	from := msg.From()
+
+	t.Log(fmt.Sprintf("from: %v hash: %v value: %v  to: %v nonce: %v  data: %v ", from, hash, value, to, nonce, data))
+
 }
