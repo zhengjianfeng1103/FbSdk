@@ -6,7 +6,7 @@ import (
 )
 
 func TestAccAddress_HexString1(t *testing.T) {
-	addr, err := AccAddressFromHex("116663f85A8727410EFA33F7051265EFAE77ed98")
+	addr, err := AccAddressFromHex("25d91BcE0D59C992C3382F775C48d8a1dc217569")
 	if err != nil {
 		t.Error(err)
 	}
@@ -24,7 +24,9 @@ func TestAccAddress_HexString(t *testing.T) {
 }
 
 func TestAccAddress_FromBech32String(t *testing.T) {
-	addr, err := AccAddressFromBech32("fb1jyzrwcfg7p6jq22wf7qnez5lzq0cap2nzgi90y")
+
+	//fb1yhv3hnsdt8ye9sec9am4cjxc58wzzatfacgmrq
+	addr, err := AccAddressFromBech32("fblyhv3hnsdt8ye9sec9am4cjxc58wzzatfacgmrq")
 	if err != nil {
 		t.Error(err)
 	}
