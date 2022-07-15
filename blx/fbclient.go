@@ -6,6 +6,15 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"math"
+	"math/big"
+	"os"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -17,14 +26,6 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/sirupsen/logrus"
 	"github.com/zhengjianfeng1103/FbSdk/log"
-	"io/ioutil"
-	"math"
-	"math/big"
-	"os"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 )
 
 const MainNet = "https://node.fibochain.org"
@@ -1159,8 +1160,6 @@ func (j *Jk) IsContract(ctx context.Context, address string) (bool, error) {
 		return false, err
 	}
 
-	log.Log.Error("code: ", string(at))
-
 	if string(at) != "" {
 		return true, nil
 	}
@@ -1230,6 +1229,8 @@ func (j *Jk) ExecuteBlocks(mutex *sync.Mutex, startNumber, latestNumber uint64, 
 	log.Log.Debug("diffHeight: ", diffHeight)
 
 	for height := latestNumber + 1; height < latestNumber+diffHeight; height++ {
+		time.Sleep(1 * time.Second)
+
 		var block *types.Block
 		block, err = client.BlockByNumber(context.Background(), big.NewInt(int64(height)))
 
