@@ -1,12 +1,13 @@
 package types
 
 import (
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"testing"
 )
 
 func TestAccAddress_HexString1(t *testing.T) {
-	addr, err := AccAddressFromHex("25d91BcE0D59C992C3382F775C48d8a1dc217569")
+	addr, err := AccAddressFromHex("C3661b9db759D5ECDB931F8c7EDF136a9469F67a")
 	if err != nil {
 		t.Error(err)
 	}
@@ -14,8 +15,80 @@ func TestAccAddress_HexString1(t *testing.T) {
 	t.Log(addr.Bech32String("fb"))
 }
 
+func TestAccAddress_HexString2(t *testing.T) {
+
+	addresses := []string{"0x2D991F4A96e16141CABA2E4C96e2f80cfBAf1f7C",
+		"0x42bb21a8cf5B6C002Cc280EC8A8E3C4ac59dD7E1",
+		"0x56e54Bf7D080a138129B0428FD5EFA7Fd7A96382",
+		"0x698d5791d0fB0bbAdcccdF563AB238368ae1D0A6",
+		"0xEAA453e7D2C5A6F1Cd0871f78B5029BB5b7d5B74",
+		"0xDCD8bF513C24C79BdbB4C2146cCB94C430391362",
+		"0x3C9492BC7e94026B10C76aac985bda7f357caDB5",
+		"0x4D971aE06d0C9f93AE3e211Ea5B0c21FC3CDa9Ef",
+		"0x837D0D89e735A8e49a276aE5c714D883881c82a5",
+		"0x7b59dE920FDA54e4B8A511aECDf2B8AF4FBa6071",
+		"0x42a171F5949e4918173EbC093dB2eFC7878bffBA",
+		"0x8cD427C33d32d02309170d0217234cE533aff569",
+		"0x3B5f125C2fBf1a4BbA8e509E86B5fF05D6f8CBCD",
+		"0x3e36aC9b8916a8CbcB3858aEE694458652412312",
+		"0x48a8eDb901b2CAC4699455dA8eE54ddF2394a04e",
+		"0x5E182108C3120Ba2a97a1d25eC44B709BaeB99e3",
+		"0x61198B0bb3A7356Baff4374185Cde868DcBa8449",
+		"0x459AE449ac69503d186EC263FC7A3CAbd8d0B236",
+		"0x45E63219A0221e293F06978db25410EC3b137C8D",
+		"0x4CBf3153F386836352E452FF54E7c426A1bdb3d1",
+		"0x4359575ba6bf36b65CB8220D35490aAdb4D6Ba19",
+		"0x6Ce1261D1DcE22c3B716b8f27BA29E509862916b",
+		"0x485C54cEf635ac58B497B7C031117A950c6550c0",
+		"0xf5230D38299fBBEC355dA9c28dC3F74105a3ff41",
+		"0x9Cc9130F12DdfAf5E982c037436893BbDf8930E4",
+		"0xa7Fc37e8A9eD5E4E1DDf626043175Cb3A44aBE73",
+		"0xa6172C290253044341141170Ba8B997bD5F9B6f4",
+		"0x07a42C5012226fd73a496B067b5C58202eA7D6B1",
+		"0x954Ec32049773974685D2bc16bb10664FE0B9278",
+		"0x4438dE63C0f20bADDb2d6A8712eF29ED60917647",
+		"0xc66D4b6DD2c9b6a40e66613dd4D65f9bd58Ff252",
+		"0x1b1Cc953462dDD6aD3B310Ec76797b4901d86Bef",
+		"0xbE36858cc84d3f9566F94234073D7bB687CEf6Bf",
+		"0x834C3D9782a035AA033971b4e9d9B0B1E5d905Fd",
+		"0x58c6f5998e374F163709C73DF62C1868A31FA9F0",
+		"0xF96764410742FC704F45e719b15504ADEe17e2c0",
+		"0xD77Cc03EA48D6935eD3eEFfBfD6A0dedEe4Dd7Cd",
+		"0x90A3dFEfA5B59747D2C044dAa133c71Acc4880C7",
+		"0x7a15b2893F228f4A5351B053291bfe3b31a52B6b",
+		"0x9852c2C68148E3E8bf5b2874b2B43118Cb58b5e8",
+		"0x96A0a027d11863188c8E6415C62Be54378DEd5af",
+		"0x0aFA4Ff0f9f82b289F8aa7Af8c74e6C46857136e",
+		"0xf71aC63FB80E3b4993D1838d90A900c5F8A1950a",
+		"0x48C706d326053B29AD110B7dE124429B98b5Ed5d",
+		"0xc16627E4851AD360969BDA8172B09c0A0AF50E39",
+		"0xC499F8917B051EaCc7F2cfbdfDd8D692106B149E",
+		"0x9Beb570C4516eDc5E3E6bf777B986bFd669ED346",
+		"0x01A80c24Fa0eB369846cFB8Be0548ade04D2AA6e",
+		"0x93BFe11354D05ACC388a6A7F029C6A8928f0FcbB",
+		"0xde62a58a0D39E9f06f5c5871B9EC07989fF43c63",
+		"0x4BfC8fD8429f44e2c9d9a1c451C640830d13BB8D",
+		"0x1392d95ca8D8153762bd0e676662255f20E09984",
+	}
+
+	for _, address := range addresses {
+
+		ad := address[2:]
+		addr, err := AccAddressFromHex(ad)
+		if err != nil {
+			t.Error(err)
+		}
+
+		//fmt.Print("'" + addr.Bech32String("fb") + "'" + ",")
+
+		fmt.Print("" + addr.Bech32String("fb") + "" + "\n")
+
+	}
+
+}
+
 func TestAccAddress_HexString(t *testing.T) {
-	addr, err := AccAddressFromHex("6caa27Dfc890d772b5Fa3Db3DaaA39bF576dC109")
+	addr, err := AccAddressFromHex("04A987fa1Bd4b2B908e9A3Ca058cc8BD43035991")
 	if err != nil {
 		t.Error(err)
 	}
@@ -26,10 +99,21 @@ func TestAccAddress_HexString(t *testing.T) {
 func TestAccAddress_FromBech32String(t *testing.T) {
 
 	//fb1yhv3hnsdt8ye9sec9am4cjxc58wzzatfacgmrq
-	addr, err := AccAddressFromBech32("fblyhv3hnsdt8ye9sec9am4cjxc58wzzatfacgmrq")
-	if err != nil {
-		t.Error(err)
+	ass := []string{
+		"fb1y532tujmquqjqgmum7czecaegfjqns6jwm7g2c",
+		"fb1mqvuzk4tjpv3wq9znw6xgrn5yy42z36zgysjfs",
+		"fb16unpg9uu44cfhtpj9f7v8gj7e2r2w4y403sjq9",
+		"fb1upravg0pwrg44gy8ky56kktl2vcvqhj3zqaw2w",
+		"fb1vsqf7zq6ckvv8ch8ddqeg6ytpnykp9k9wqk4g5",
 	}
 
-	t.Log(addr, common.BytesToAddress(addr))
+	for _, addrBefore := range ass {
+		addr, err := AccAddressFromBech32(addrBefore)
+		if err != nil {
+			t.Error(err)
+		}
+
+		fmt.Print("'" + common.BytesToAddress(addr).Hex() + "'" + ",")
+	}
+
 }

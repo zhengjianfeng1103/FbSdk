@@ -33,7 +33,7 @@ const TestNet = "https://test.fibochain.org"
 const MainNet2 = "http://13.228.22.173:8545"
 
 const MainNetCoin = "FIBO"
-const MainNetChainId = 1230
+const MainNetChainId = 12306
 const MaxRetrySync = 24
 const MaxRetryTimeDurationSeconds = 1
 
@@ -437,7 +437,7 @@ func (j *Jk) SendSync(ctx context.Context, senderPrivate string, receive string,
 	}
 }
 
-//SendRawTx rawTx hexString no 0x
+// SendRawTx rawTx hexString no 0x
 func (j *Jk) SendRawTx(ctx context.Context, rawTx string) (hash string, txResult *types.Transaction, err error) {
 	client, err := j.Acquire()
 	if err != nil {
